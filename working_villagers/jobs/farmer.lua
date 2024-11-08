@@ -50,13 +50,7 @@ local farming_demands = {
 }
 
 function farming_plants.get_plant(item_name)
-	-- check more priority definitions
-	for key, value in pairs(farming_plants.names) do
-		if item_name==key then
-			return value
-		end
-	end
-	return nil
+	return util.get_item_from_list(farming_plants, item_name)
 end
 
 function farming_plants.is_plant(item_name)

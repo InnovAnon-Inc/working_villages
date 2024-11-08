@@ -252,4 +252,14 @@ function func.is_chest(pos)
   return false;
 end
 
+function func.get_item_from_list(list, item_name) -- from farmer.lua
+	-- check more priority definitions
+	for key, value in pairs(list.names) do
+		if item_name==key then
+			return value
+		end
+	end
+	return nil
+end
+
 return func
