@@ -101,7 +101,7 @@ working_villages.register_job("working_villages:job_farmer", {
 		self:handle_obstacles()
 		if self:timer_exceeded("farmer:search",20) then
 			self:collect_nearest_item_by_condition(farming_plants.is_plant, searching_range)
-			local target = func.search_surrounding(self.object:get_pos(), find_plant_node, searching_range)
+			local target = util.search_surrounding(self.object:get_pos(), find_plant_node, searching_range)
 			if target ~= nil then
 				local destination = func.find_adjacent_clear(target)
 				if destination then

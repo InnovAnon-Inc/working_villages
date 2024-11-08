@@ -445,3 +445,26 @@ function working_villages.villager:handle_job_pos()
 	end
 end
 
+
+function working_villages.villager:use_item(stack, target)
+	log.action("villager %s is using item", self.inventory_name)
+
+	if stack:is_empty() then return false, nil end
+
+	local def = stack:get_definition()
+	if def == nil then return false, nil end
+
+	local on_use = def.on_use
+	if on_use == nil then return false, nil end
+
+	local pointed_thing = {under=target, above=target, type="node"}
+	local new_stack     = on_use(stack, self, pointed_thing)
+	for _=0,10 do coroutine.yield() end -- throttle
+	return true, new_stack
+end
+
+function working_villages.villager:use_wield_item(target)
+	local stack = self:get_wield_item_stack()
+	local flag, new_stack = self:use_item(stack, target)
+	if flag then self:set_wield_item_stack(new_stack) end
+end
