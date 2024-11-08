@@ -40,6 +40,15 @@ local function find_tillable_node(self)
 		if (not data) then
 			return false;
 		end
+
+		for dy = 1, 2 do
+			local above = vector.add(pos, {x=0, y=dy, z=0})
+			local node_above = minetest.get_node(above)
+			if (node_above.name ~= "air") then
+				return false;
+			end
+		end
+
 		local water_rad = 3;
 		local water_names = {
 			"default:water_source",
