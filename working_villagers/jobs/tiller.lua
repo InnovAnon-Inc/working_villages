@@ -87,7 +87,7 @@ working_villages.register_job("working_villages:job_tiller", {
 		self:handle_obstacles()
 		if self:timer_exceeded("tiller:search",20) then
 			self:collect_nearest_item_by_condition(tillable_nodes.is_tillable, searching_range)
-			local target = func.search_surrounding(self.object:get_pos(), find_tillable_node, searching_range)
+			local target = func.search_surrounding(self.object:get_pos(), find_tillable_node(self), searching_range)
 			if target ~= nil then
 				local destination = func.find_adjacent_clear(target)
 				if destination then
@@ -97,9 +97,14 @@ working_villages.register_job("working_villages:job_tiller", {
 					print("failure: no adjacent walkable found")
 					destination = target
 				end
-				self:go_to(destination)
-				local plant_data = tillable_nodes.get_tillable(minetest.get_node(target).name);
-				self:use_wield_item(target)
+				local success, result = self:go_to(destination)
+				if not success then
+					working_villages.failed_pos_record(target)
+					self:set_displayed_action("looking at the unreachable dirt")
+					self:delay(100)
+				else
+					self:use_wield_item(target)
+				end
 			end
 		elseif self:timer_exceeded("tiller:change_dir",50) then
 			self:change_direction_randomly()
