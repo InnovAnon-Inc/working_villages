@@ -22,11 +22,11 @@ local tilling_demands = {
 }
 
 function tillable_nodes.get_tillable(item_name)
-	return util.get_item_from_list(tillable_nodes, item_name)
+	return func.get_item_from_list(tillable_nodes, item_name)
 end
 
 function tillable_nodes.is_tillable(item_name)
-	return util.is_item_from_list(farming_plant, item_name)
+	return func.is_item_from_list(farming_plant, item_name)
 end
 
 local function find_tillable_node(self)
