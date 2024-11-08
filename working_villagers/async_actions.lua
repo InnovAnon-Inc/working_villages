@@ -225,14 +225,26 @@ function working_villages.villager:place(item,pos)
 		minetest.set_node(pointed_thing.above, item)
 		--minetest.place_node(pos, item) --loses param2
 		stack:take_item(1)
+		log.action("villager %s is placing(1) item %s",self.inventory_name, itemname)
 	else
 		local before_node = minetest.get_node(pos)
 		local before_count = stack:get_count()
 		local itemdef = stack:get_definition()
-		if itemdef.on_place then
+		if itemdef.on_rightclick then -- for planter.lua
+			stack = itemdef.on_rightclick(pos, destnode, self, stack, pointed_thing)
+			self:set_displayed_action("I am using item "..stack:get_name())
+			log.action("villager %s is using(2) item %s",self.inventory_name, itemname)
+		elseif itemdef.on_place then
+			assert (stack         ~= nil)
+			assert (self          ~= nil)
+			assert (pointed_thing ~= nil)
 			stack = itemdef.on_place(stack, self, pointed_thing)
+			self:set_displayed_action("I am placing item "..stack:get_name())
+			log.action("villager %s is placing(2) item %s",self.inventory_name, itemname)
 		elseif itemdef.type=="node" then
 			stack = minetest.item_place_node(stack, self, pointed_thing)
+			self:set_displayed_action("I am placing item "..stack:get_name())
+			log.action("villager %s is placing(3) item %s",self.inventory_name, itemname)
 		end
 		local after_node = minetest.get_node(pos)
 		-- if the node didn't change, then the callback failed
@@ -446,8 +458,9 @@ function working_villages.villager:handle_job_pos()
 end
 
 
-function working_villages.villager:use_item(stack, target)
-	log.action("villager %s is using item %s", self.inventory_name, stack:get_name())
+function working_villages.villager:use_item(stack, target) -- for tiller.lua
+	log.action("villager %s is using(1) item %s", self.inventory_name, stack:get_name())
+	self:set_displayed_action("I am using item "..stack:get_name())
 
 	if stack:is_empty() then return false, stack end
 
@@ -463,8 +476,44 @@ function working_villages.villager:use_item(stack, target)
 	return true, new_stack
 end
 
-function working_villages.villager:use_wield_item(target)
+function working_villages.villager:use_wield_item(target) -- for tiller.lua
 	local stack = self:get_wield_item_stack()
 	local flag, new_stack = self:use_item(stack, target)
 	if flag and (new_stack ~= nil) then self:set_wield_item_stack(new_stack) end
+	return flag
 end
+
+--function working_villages.villager:place_item(stack, target, param2)
+--	log.action("villager %s is placing item %s", self.inventory_name, stack:get_name())
+--	self:set_displayed_action("I am placing item "..stack:get_name())
+--
+--	if stack:is_empty() then return stack, false end
+--
+--	local def = stack:get_definition()
+--	if def == nil then return stack, false end
+--
+--	local pointed_thing = {under=target, above=target, type="node"}
+--
+--	local on_place = def.on_place
+--	if on_place ~= nil then
+--		local new_stack = on_place(stack, self, pointed_thing, param2)
+--		return new_stack, true
+--	end
+--
+--	local node = minetest.get_node(target)
+--	local target_def = minetest.registered_nodes[node.name]
+--	local on_rightclick = target_def.on_rightclick
+--	if on_rightclick ~= nil then
+--		local new_stack = on_rightclick(target, node, self, stack, pointed_thing)
+--		return new_stack, true
+--	end
+--	return nil, false -- TODO proper take & place ?
+--
+--end
+--
+--function working_villages.villager:place_wield_item(target, param2)
+--	local stack = self:get_wield_item_stack()
+--	local new_stack, flag = self:place_item(stack, target, param2)
+--	if flag and (new_stack ~= nil) then self:set_wield_item_stack(new_stack) end
+--end
+

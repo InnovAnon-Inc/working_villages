@@ -1,5 +1,6 @@
 
 local func = working_villages.require("jobs/util")
+local log = working_villages.require("log")
 
 -- limited support to two replant definitions
 local farming_plants = {
@@ -20,7 +21,7 @@ local farming_plants = {
 		["farming:cucumber_4"]={replant={"farming:cucumber"}},
 		["farming:garlic_5"]={replant={"farming:garlic_clove"}},
 		["farming:grapes_8"]={replant={"farming:trellis","farming:grapes"}},
-		["farming:hemp_8"]={replant={"farming:seed_hem["}},
+		["farming:hemp_8"]={replant={"farming:seed_hemp"}},
 		["farming:lettuce_5"]={replant={"farming:lettuce"}},
 		["farming:melon_8"]={replant={"farming:melon_slice"}},
 		["farming:mint_4"]={replant={"farming:seed_mint"}},
@@ -29,7 +30,7 @@ local farming_plants = {
 		["farming:parsley_3"]={replant={"farming:parsley"}},
 		["farming:pea_5"]={replant={"farming:pea_pod"}},
 		["farming:pepper_7"]={replant={"farming:peppercorn"}},
-		["farming:pineaple_8"]={replant={"farming:pineapple_top"}},
+		["farming:pineaple_8"]={replant={"farming:pineapple_top"}}, -- TODO spelling?
 		["farming:potato_4"]={replant={"farming:potato"}},
 		["farming:pumpkin_8"]={replant={"farming:pumpkin_slice"}},
 		["farming:raspberry_4"]={replant={"farming:raspberries"}},
@@ -54,7 +55,7 @@ function farming_plants.get_plant(item_name)
 end
 
 function farming_plants.is_plant(item_name)
-	return func.is_item_from_list(farming_plant, item_name)
+	return func.is_item_from_list(farming_plants, item_name)
 end
 
 local function find_plant_node(pos)
@@ -98,27 +99,37 @@ local function farming_job(self)
 	if self:timer_exceeded("farmer:search",20) then
 		self:collect_nearest_item_by_condition(farming_plants.is_plant, searching_range)
 		local target = func.search_surrounding(self.object:get_pos(), find_plant_node, searching_range)
-		if target ~= nil then
-			local destination = func.find_adjacent_clear(target)
-			if destination then
-				destination = func.find_ground_below(destination)
-			end
-			if destination==false then
-				print("failure: no adjacent walkable found")
-				destination = target
-			end
-			self:go_to(destination)
-			local plant_data = farming_plants.get_plant(minetest.get_node(target).name);
-			self:dig(target,true)
-			if plant_data and plant_data.replant then
-				for index, value in ipairs(plant_data.replant) do
-					self:place(value, vector.add(target, vector.new(0,index-1,0)))
-				end
+		if target == nil then
+			return false
+		end
+
+		local destination = func.find_adjacent_clear(target)
+		if destination then
+			destination = func.find_ground_below(destination)
+		end
+		if destination==false then
+			--print("failure: no adjacent walkable found")
+			log.error("Villager %s no adjacent walkable found", self.inventory_name)
+			destination = target
+		end
+
+		self:go_to(destination)
+
+		local plant_data = farming_plants.get_plant(minetest.get_node(target).name);
+		self:dig(target,true)
+		if plant_data and plant_data.replant then
+			for index, value in ipairs(plant_data.replant) do
+				self:place(value, vector.add(target, vector.new(0,index-1,0)))
 			end
 		end
-	elseif self:timer_exceeded("farmer:change_dir",50) then
-		self:change_direction_randomly()
+
+		return true
 	end
+	if self:timer_exceeded("farmer:change_dir",50) then
+		self:change_direction_randomly()
+		return true
+	end
+	return true
 end
 
 working_villages.register_job("working_villages:job_farmer", {

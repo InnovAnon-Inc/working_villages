@@ -1,5 +1,6 @@
 
 local func = working_villages.require("jobs/util")
+local log = working_villages.require("log")
 
 -- limited support to two replant definitions
 local tillable_nodes = {
@@ -16,9 +17,9 @@ local tillable_nodes = {
 }
 
 local tilling_demands = {
-	["farming:hoe_wood"] = 99,
-	["farming:hoe_stone"] = 99,
 	["farming:hoe_steel"] = 99,
+	["farming:hoe_stone"] = 99,
+	["farming:hoe_wood"] = 99,
 }
 
 function tillable_nodes.get_tillable(item_name)
@@ -26,7 +27,7 @@ function tillable_nodes.get_tillable(item_name)
 end
 
 function tillable_nodes.is_tillable(item_name)
-	return func.is_item_from_list(farming_plant, item_name)
+	return func.is_item_from_list(tillable_nodes, item_name)
 end
 
 local function find_tillable_node(self)
@@ -73,38 +74,55 @@ end
 local function tilling_job(self)
 	self:handle_night()
 	self:handle_chest(take_func, put_func)
-	self:move_main_to_wield(function(name)
-		return (tilling_demands[name] ~= nil)
-	end)
+	local wield_stack = self:get_wield_item_stack()
+	if (wield_stack == nil)
+	or (wield_stack:is_empty()) then
+		self:move_main_to_wield(function(name)
+			return (tilling_demands[name] ~= nil)
+		end)
+		wield_stack = self:get_wield_item_stack()
+	end
 	self:handle_job_pos()
 
 	self:count_timer("tiller:search")
 	self:count_timer("tiller:change_dir")
 	self:handle_obstacles()
 	if self:timer_exceeded("tiller:search",20) then
-		self:collect_nearest_item_by_condition(tillable_nodes.is_tillable, searching_range)
+		--self:collect_nearest_item_by_condition(tillable_nodes.is_tillable, searching_range)
 		local target = func.search_surrounding(self.object:get_pos(), find_tillable_node(self), searching_range)
-		if target ~= nil then
-			local destination = func.find_adjacent_clear(target)
-			if destination then
-				destination = func.find_ground_below(destination)
-			end
-			if destination==false then
-				print("failure: no adjacent walkable found")
-				destination = target
-			end
-			local success, result = self:go_to(destination)
-			if not success then
-				working_villages.failed_pos_record(target)
-				self:set_displayed_action("looking at the unreachable dirt")
-				self:delay(100)
-			else
-				self:use_wield_item(target)
-			end
+		if target == nil then
+			log.error("Villager %s does not find target", self.inventory_name)
+			return false
 		end
-	elseif self:timer_exceeded("tiller:change_dir",50) then
-		self:change_direction_randomly()
+
+		local destination = func.find_adjacent_clear(target)
+		if destination then
+			destination = func.find_ground_below(destination)
+		end
+		if destination==false then
+			log.error("Villager %s no adjacent walkable found", self.inventory_name)
+			destination = target
+		end
+		local success, result = self:go_to(destination)
+		if not success then
+			working_villages.failed_pos_record(target)
+			self:set_displayed_action("looking at the unreachable dirt")
+			self:delay(100)
+			return false
+		end
+		succsss = self:use_wield_item(target)
+		if not success then
+			log.error('wield failed')
+			self:set_displayed_action("wield failure")
+			return false
+		end
+		return true
 	end
+	if self:timer_exceeded("tiller:change_dir",50) then
+		self:change_direction_randomly()
+		return true
+	end
+	return true
 end
 
 working_villages.register_job("working_villages:job_tiller", {
