@@ -70,46 +70,49 @@ local function take_func(villager,stack)
 	return false
 end
 
+local function tilling_job(self)
+	self:handle_night()
+	self:handle_chest(take_func, put_func)
+	self:move_main_to_wield(function(name)
+		return (tilling_demands[name] ~= nil)
+	end)
+	self:handle_job_pos()
+
+	self:count_timer("tiller:search")
+	self:count_timer("tiller:change_dir")
+	self:handle_obstacles()
+	if self:timer_exceeded("tiller:search",20) then
+		self:collect_nearest_item_by_condition(tillable_nodes.is_tillable, searching_range)
+		local target = func.search_surrounding(self.object:get_pos(), find_tillable_node(self), searching_range)
+		if target ~= nil then
+			local destination = func.find_adjacent_clear(target)
+			if destination then
+				destination = func.find_ground_below(destination)
+			end
+			if destination==false then
+				print("failure: no adjacent walkable found")
+				destination = target
+			end
+			local success, result = self:go_to(destination)
+			if not success then
+				working_villages.failed_pos_record(target)
+				self:set_displayed_action("looking at the unreachable dirt")
+				self:delay(100)
+			else
+				self:use_wield_item(target)
+			end
+		end
+	elseif self:timer_exceeded("tiller:change_dir",50) then
+		self:change_direction_randomly()
+	end
+end
+
 working_villages.register_job("working_villages:job_tiller", {
 	description			= "tiller (working_villages)",
 	long_description = "I look for dirt nodes near water and till them to soil.",
 	inventory_image	= "default_paper.png^working_villages_farmer.png",
-	jobfunc = function(self)
-		self:handle_night()
-		self:handle_chest(take_func, put_func)
-		self:move_main_to_wield(function(name)
-			return (tilling_demands[name] ~= nil)
-		end)
-		self:handle_job_pos()
-
-		self:count_timer("tiller:search")
-		self:count_timer("tiller:change_dir")
-		self:handle_obstacles()
-		if self:timer_exceeded("tiller:search",20) then
-			self:collect_nearest_item_by_condition(tillable_nodes.is_tillable, searching_range)
-			local target = func.search_surrounding(self.object:get_pos(), find_tillable_node(self), searching_range)
-			if target ~= nil then
-				local destination = func.find_adjacent_clear(target)
-				if destination then
-					destination = func.find_ground_below(destination)
-				end
-				if destination==false then
-					print("failure: no adjacent walkable found")
-					destination = target
-				end
-				local success, result = self:go_to(destination)
-				if not success then
-					working_villages.failed_pos_record(target)
-					self:set_displayed_action("looking at the unreachable dirt")
-					self:delay(100)
-				else
-					self:use_wield_item(target)
-				end
-			end
-		elseif self:timer_exceeded("tiller:change_dir",50) then
-			self:change_direction_randomly()
-		end
-	end,
+	jobfunc = tilling_job,
 })
 
 working_villages.tillable_nodes = tillable_nodes
+working_villages.tilling_job = tilling_job
