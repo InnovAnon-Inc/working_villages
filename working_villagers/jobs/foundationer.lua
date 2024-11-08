@@ -69,7 +69,8 @@ local function foundationing_job(self)
 	self:handle_chest(take_func, put_func)
 	local wield_stack = self:get_wield_item_stack()
 	if (wield_stack == nil)
-	or (wield_stack:is_empty()) then
+	or (wield_stack:is_empty())
+	or (foundationing_demands[wield_stack:get_name()] == nil) then
 		self:move_main_to_wield(function(name)
 			return (foundationing_demands[name] ~= nil)
 		end)
@@ -84,7 +85,7 @@ local function foundationing_job(self)
 		--self:collect_nearest_item_by_condition(irrigation_nodes.is_foundation, searching_range)
 		local target = func.search_surrounding(self.object:get_pos(), find_irrigated_node(self), searching_range)
 		if target == nil then
-			log.error("Villager %s does not find target", self.inventory_name)
+			--log.error("Villager %s does not find target", self.inventory_name)
 			return false
 		end
 

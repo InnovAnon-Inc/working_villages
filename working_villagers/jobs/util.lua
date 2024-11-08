@@ -75,7 +75,7 @@ local find_adjacent_clear = func.find_adjacent_clear
 
 -- search in an expanding box around pos in the XZ plane
 -- first hit would be closest
-local function search_surrounding(pos, pred, searching_range)
+local function search_surrounding(pos, pred, searching_range, breadth_first)
 	pos = vector.round(pos)
 	local max_xz = math.max(searching_range.x, searching_range.z)
 	local mod_y
@@ -91,51 +91,105 @@ local function search_surrounding(pos, pred, searching_range)
 
 	local ret = {}
 
-	local function check_column(dx, dz)
-		if ret.pos ~= nil then return end
-		for j = mod_y - searching_range.y, searching_range.y do
-			local p = vector.add({x = dx, y = j, z = dz}, pos)
-			if pred(p) and find_adjacent_clear(p)~=false then
-				ret.pos = p
-				return
+	if (not breadth_first) then
+		local function check_column(dx, dz)
+			if ret.pos ~= nil then return end
+			for j = mod_y - searching_range.y, searching_range.y do
+				local p = vector.add({x = dx, y = j, z = dz}, pos)
+				if pred(p) and find_adjacent_clear(p)~=false then
+					ret.pos = p
+					return
+				end
 			end
 		end
-	end
 
-	for i = 0, max_xz do
-		for k = 0, i do
-			-- hit the 8 points of symmetry, bound check and skip duplicates
-			if k <= searching_range.x and i <= searching_range.z then
-				check_column(k, i)
-				if i > 0 then
-					check_column(k, -i)
-				end
-				if k > 0 then
-					check_column(-k, i)
-					if k ~= i then
-						check_column(-k, -i)
+		for i = 0, max_xz do
+			for k = 0, i do
+				-- hit the 8 points of symmetry, bound check and skip duplicates
+				if k <= searching_range.x and i <= searching_range.z then
+					check_column(k, i)
+					if i > 0 then
+						check_column(k, -i)
 					end
-				end
-			end
-
-			if i <= searching_range.x and k <= searching_range.z then
-				if i > 0 then
-					check_column(-i, k)
-				end
-				if k ~= i then
-					check_column(i, k)
 					if k > 0 then
-						check_column(-i, -k)
-						check_column(i, -k)
+						check_column(-k, i)
+						if k ~= i then
+							check_column(-k, -i)
+						end
 					end
 				end
-			end
-			if ret.pos ~= nil then
-				break
+
+				if i <= searching_range.x and k <= searching_range.z then
+					if i > 0 then
+						check_column(-i, k)
+					end
+					if k ~= i then
+						check_column(i, k)
+						if k > 0 then
+							check_column(-i, -k)
+							check_column(i, -k)
+						end
+					end
+				end
+				if ret.pos ~= nil then
+					break
+				end
 			end
 		end
+		return ret.pos
 	end
-	return ret.pos
+	-- breadth_first
+	local function check_column(dx, dz, j)
+		if ret.pos ~= nil then return end
+		local p = vector.add({x = dx, y=j, z=dz}, pos)
+		if pred(p) and find_adjacent_clear(p)~=false then
+			ret.pos = p
+			return
+		end
+	end
+	local function check_plane(j)
+		for i = 0, max_xz do
+			for k = 0, i do
+				-- hit the 8 points of symmetry, bound check and skip duplicates
+				if k <= searching_range.x and i <= searching_range.z then
+					check_column(k, i, j)
+					if i > 0 then
+						check_column(k, -i, j)
+					end
+					if k > 0 then
+						check_column(-k, i, j)
+						if k ~= i then
+							check_column(-k, -i, j)
+						end
+					end
+				end
+
+				if i <= searching_range.x and k <= searching_range.z then
+					if i > 0 then
+						check_column(-i, k, j)
+					end
+					if k ~= i then
+						check_column(i, k, j)
+						if k > 0 then
+							check_column(-i, -k, j)
+							check_column(i, -k, j)
+						end
+					end
+				end
+				if ret.pos ~= nil then
+					break
+				end
+			end
+		end
+		--return ret.pos
+	end
+	for j = searching_range.y, mod_y - searching_range.y, -1 do
+		check_plane(j)
+		if ret.pos ~= nil then
+			break
+		end
+	end
+	return ret.pos 
 end
 
 func.search_surrounding = search_surrounding

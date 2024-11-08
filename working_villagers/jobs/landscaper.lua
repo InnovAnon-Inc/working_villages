@@ -75,7 +75,8 @@ local function landscaping_job(self)
 	self:handle_chest(take_func, put_func)
 	local wield_stack = self:get_wield_item_stack()
 	if (wield_stack == nil)
-	or (wield_stack:is_empty()) then
+	or (wield_stack:is_empty())
+	or (landscaping_demands[wield_stack:get_name()] == nil) then
 		self:move_main_to_wield(function(name)
 			return (landscaping_demands[name] ~= nil)
 		end)
