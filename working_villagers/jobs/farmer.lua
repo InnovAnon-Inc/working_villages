@@ -54,11 +54,7 @@ function farming_plants.get_plant(item_name)
 end
 
 function farming_plants.is_plant(item_name)
-	local data = farming_plants.get_plant(item_name);
-	if (not data) then
-		return false;
-	end
-	return true;
+	return util.is_item_from_list(farming_plant, item_name)
 end
 
 local function find_plant_node(pos)

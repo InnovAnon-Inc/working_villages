@@ -262,4 +262,13 @@ function func.get_item_from_list(list, item_name) -- from farmer.lua
 	return nil
 end
 
+function func.is_item_from_list(list, item_name) -- from farmer.lua
+	local data = func.get_item_from_list(list, item_name);
+	if (not data) then
+		return false;
+	end
+	return true;
+end
+
+
 return func
