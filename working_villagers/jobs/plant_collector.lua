@@ -7,12 +7,37 @@ local herbs = {
 		["default:cactus"]={collect_only_top=true},
 		["default:papyrus"]={collect_only_top=true},
 		["default:dry_shrub"]={},
-		["flowers:mushroom_brown"]={},
-		["flowers:mushroom_red"]={},
+		["flowers:mushroom_brown"]={responsible_foraging=true},
+		["flowers:mushroom_red"]={responsible_foraging=true},
+		["flowers:rose"]={responsible_foraging=true},
+		["flowers:tulip"]={responsible_foraging=true},
+		["flowers:viola"]={responsible_foraging=true},
+		["flowers:geranium"]={responsible_foraging=true},
+		["flowers:waterlily"]={responsible_foraging=true},
+		["flowers:tulip_black"]={responsible_foraging=true},
+		["flowers:dandelion_white"]={responsible_foraging=true},
+		["flowers:dandelion_yellow"]={responsible_foraging=true},
+		["flowers:chrysanthemum_green"]={responsible_foraging=true},
+
+		["bones:bones"] = {},
+
+		["default:blueberry_bush_leaves_with_berries"]={},
+		["default:bush_leaves"]={},
+		["default:bush_stem"]={},
+
+		["fireflies:firefly"]={},
+		["butterflies:butterfly_red"]={},
+		["butterflies:butterfly_white"]={},
+		["butterflies:butterfly_violet"]={},
 	},
   -- less priority definitions
 	groups = {
-		["flora"]={},
+		["flora"]={responsible_foraging=true},
+		["plant"]={responsible_foraging=true},
+		["flower"]={responsible_foraging=true},
+
+		["leaves"]={},
+		["stick"]={},
 	},
 }
 
@@ -31,6 +56,10 @@ function herbs.get_herb(item_name)
 	end
 	return nil
 end
+
+local herbcollecting_demands = {
+	["fireflies:bug_net"] = 99,
+}
 
 function herbs.is_herb(item_name)
   local data = herbs.get_herb(item_name);
@@ -61,13 +90,35 @@ local function find_herb_node(pos)
     end
   end
 
+  if data.responsible_foraging then -- don't raze renewable resources
+    return (minetest.find_node_near(pos, 9, node.name) ~= nil);
+  end
+
   return true;
 end
 
 local searching_range = {x = 10, y = 5, z = 10}
 
-local function put_func()
-  return true;
+--local function put_func()
+--  return true;
+--end
+local function put_func(_,stack)
+	if herbcollecting_demands[stack:get_name()] then
+		return false
+	end
+	return true;
+end
+local function take_func(villager,stack)
+	local item_name = stack:get_name()
+	if herbcollecting_demands[item_name] then
+		local inv = villager:get_inventory()
+		local itemstack = ItemStack(item_name)
+		itemstack:set_count(herbcollecting_demands[item_name])
+		if (not inv:contains_item("main", itemstack)) then
+			return true
+		end
+	end
+	return false
 end
 
 working_villages.register_job("working_villages:job_herbcollector", {
@@ -76,7 +127,8 @@ working_villages.register_job("working_villages:job_herbcollector", {
 	inventory_image  = "default_paper.png^working_villages_herb_collector.png",
 	jobfunc = function(self)
 		self:handle_night()
-		self:handle_chest(nil, put_func)
+		--self:handle_chest(nil, put_func)
+		self:handle_chest(take_func, put_func)
 		self:handle_job_pos()
 
 		self:count_timer("herbcollector:search")
@@ -95,8 +147,8 @@ working_villages.register_job("working_villages:job_herbcollector", {
 					destination = target
 				end
 				self:go_to(destination)
-        --local herb_data = herbs.get_herb(minetest.get_node(target).name);
-        herbs.get_herb(minetest.get_node(target).name);
+        			--local herb_data = herbs.get_herb(minetest.get_node(target).name);
+        			--herbs.get_herb(minetest.get_node(target).name);
 				self:dig(target,true)
 			end
 		elseif self:timer_exceeded("herbcollector:change_dir",50) then

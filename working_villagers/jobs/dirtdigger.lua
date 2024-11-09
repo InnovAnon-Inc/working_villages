@@ -13,6 +13,12 @@ local dirt_nodes = {
 		["default:dirt_with_dry_grass"] = 99,
 		["default:dirt_with_coniferous_litter"] = 99,
 		["default:dirt_with_rainforest_litter"] = 99,
+
+		["default:sand"] = 99,
+		["default:desert_sand"] = 99,
+		["default:silver_sand"] = 99,
+
+		["default:gravel"] = 99,
 	},
 }
 
