@@ -35,7 +35,7 @@ local function alternate(self, guard_mode)
 		guard_mode = "farmer"
 
 	elseif (guard_mode == "farmer") then
-		guard_mode = "bricklayer"
+		guard_mode = "dirtlayer"
 
 	else error("invalid mode "..guard_mode) end
 

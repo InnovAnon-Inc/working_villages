@@ -56,6 +56,7 @@ working_villages.require("jobs/dirtlayer")
 working_villages.require("jobs/tiller")
 working_villages.require("jobs/planter")
 working_villages.require("jobs/farmer")
+working_villages.require("jobs/baker")
 working_villages.require("jobs/jack")
 working_villages.require("jobs/woodcutter")
 --testing jobs

@@ -336,4 +336,45 @@ function func.has_headroom(pos)
 	return true;
 end
 
+function func.take_everything(villager,stack)
+  -- take everything from chest if room in inventory
+  assert(villager ~= nil)
+  assert(stack    ~= nil)
+  local item_name = stack:get_name()
+  local inv = villager:get_inventory()
+  return (inv:room_for_item("main", stack))
+end
+
+function func.put_everything(villager,stack)
+  -- put everything into chest
+  assert(villager ~= nil)
+  assert(stack    ~= nil)
+  return true
+end
+
+func.furnace_names = {
+  ["default:furnace"]        = true,
+  ["default:furnace_active"] = true,
+}
+if minetest.get_modpath("homedecor_kitchen") then
+  func.furnace_names["homedecor_kitchen:oven"]              = true
+  func.furnace_names["homedecor_kitchen:oven_active"]       = true
+  func.furnace_names["homedecor_kitchen:oven_steel"]        = true
+  func.furnace_names["homedecor_kitchen:oven_steel_active"] = true
+  func.furnace_names["homedecor:microwave_oven"]            = true
+  func.furnace_names["homedecor:microwave_oven_active"]     = true
+end
+function func.is_furnace(pos)
+	local node = minetest.get_node(pos)
+  if (node==nil) then
+    return false;
+  end
+  if func.furnace_names[node.name] then
+    return true;
+  end
+  --local is_furnace = minetest.get_item_group(node.name, "furnace"); -- oven ? idk
+  --return (is_furnace~=0)
+  return false;
+end
+
 return func

@@ -527,3 +527,121 @@ end
 --	if flag and (new_stack ~= nil) then self:set_wield_item_stack(new_stack) end
 --end
 
+function working_villages.villager:handle_appliance(data)
+	assert(data ~= nil)
+	if (not self.job_data.manipulated_appliance) then
+		self.job_data.manipulated_appliance = {}
+	end
+	local app_id = data.appliance_id
+	assert(app_id ~= nil)
+	local appliance_pos = data.appliance_pos
+	assert(appliance_pos ~= nil)
+	if (appliance_pos==nil) then return end
+	self:set_state_info("I am taking and puting items from/to my appliance.")
+	self:set_displayed_action("active")
+	local appliance = minetest.get_node(appliance_pos);
+	local dir = minetest.facedir_to_dir(appliance.param2);
+	local destination = vector.subtract(appliance_pos, dir);
+	self:go_to(destination)
+	local success, ret = self:go_to(destination)
+	if not success then
+		assert(destination ~= nil)
+		working_villages.failed_pos_record(destination)
+		self:set_displayed_action("looking at the unreachable appliance")
+		self:delay(100)
+	else
+		self:manipulate_appliance(appliance_pos, data)
+		-- TODO check whether appliance is ready/inactive
+		-- this logic would be job-specific
+		self.job_data.manipulated_appliance[app_id] = true;
+	end
+end
+function working_villages.villager:manipulate_appliance(appliance_pos, data)
+	assert(data ~= nil)
+	assert(data.is_appliance ~= nil)
+	if not data.is_appliance(appliance_pos) then
+		log.error("Villager %s does not find appliance on position %s.", self.inventory_name, minetest.pos_to_string(appliance_pos))
+		return
+	end
+
+	-- try to put items
+	local vil_inv     = self:get_inventory();
+	local target_node = minetest.get_node(appliance_pos)
+	local target_def  = minetest.registered_nodes[target_node.name]
+	local placer = self
+
+	assert(data.operations ~= nil)
+	local operations = data.operations
+	assert(#operations > 0)
+	for _, operation in ipairs(operations) do
+		assert(operation ~= nil)
+		if operation.noop then
+			self:delay(operation.noop) -- some appliances take time to produce results
+		else
+			local app_list_name = operation.list
+			assert(app_list_name ~= nil)
+			if operation.is_put then -- from villager to appliance
+				assert(operation.is_take == nil)
+				assert(operation.put_func ~= nil)
+				local size = vil_inv:get_size("main");
+				for index = 1,size do
+					local stack = vil_inv:get_stack("main", index);
+					if (not stack:is_empty()) and (operation.put_func(self, stack, operation.data)) then
+						local appliance_meta = minetest.get_meta(appliance_pos);
+						local appliance_inv = appliance_meta:get_inventory();
+						if operation.data ~= nil and operation.data.target_count ~= nil then
+							local i = operation.data.target_index
+							local leftover
+							if appliance_inv:get_stack(app_list_name, i):is_empty() then
+								local new_stack = stack:take_item(operation.data.target_count)
+								appliance_inv:set_stack(app_list_name, i, new_stack);
+								vil_inv:set_stack("main", index, stack);
+								-- TODO check if success ?
+								if(target_def.on_metadata_inventory_put ~= nil) then -- active furnace doesn't have this
+									target_def.on_metadata_inventory_put(appliance_pos, app_list_name, index, new_stack, placer) -- index should be 0 ?
+								end
+							end
+						else
+							local leftover = appliance_inv:add_item(app_list_name, stack);
+							vil_inv:set_stack("main", index, leftover);
+							if(target_def.on_metadata_inventory_put ~= nil) then -- active furnace doesn't have this
+								target_def.on_metadata_inventory_put(appliance_pos, app_list_name, index, stack, placer) -- index should be 0 ?
+							end
+						end
+						log.info("Villager %s moves %s from inventory to appliance's %s on position %s.", self.inventory_name, stack:get_name(), app_list_name, minetest.pos_to_string(appliance_pos))
+						if not operation.no_yield then
+							self:delay(10)
+						else assert(operation.no_yield == true)
+						end
+					end
+				end
+
+			else -- from appliance to villager
+				assert(operation.is_take)
+				assert(operation.is_put == nil)
+				assert(operation.take_func ~= nil)
+				local appliance_meta = minetest.get_meta(appliance_pos);
+				local appliance_inv = appliance_meta:get_inventory();
+				local size = appliance_inv:get_size(app_list_name);
+				for index = 1,size do
+					appliance_meta = minetest.get_meta(appliance_pos);
+					appliance_inv = appliance_meta:get_inventory();
+					local stack = appliance_inv:get_stack(app_list_name, index);
+					if (not stack:is_empty()) and (operation.take_func(self, stack, operation.data)) then
+						local leftover = vil_inv:add_item("main", stack);
+						appliance_inv:set_stack(app_list_name, index, leftover);
+						if(target_def.on_metadata_inventory_take ~= nil) then -- active furnace doesn't have this
+							target_def.on_metadata_inventory_take(appliance_pos, app_list_name, index, stack, placer) -- index should be 0 ?
+						end
+						log.info("Villager %s moves %s to inventory from appliance's %s on position %s.", self.inventory_name, stack:get_name(), app_list_name, minetest.pos_to_string(appliance_pos))
+						if not operation.no_yield then
+							self:delay(10)
+						else assert(operation.no_yield == true)
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
