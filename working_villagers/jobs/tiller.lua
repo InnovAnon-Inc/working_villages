@@ -41,12 +41,8 @@ local function find_tillable_node(self)
 			return false;
 		end
 
-		for dy = 1, 2 do
-			local above = vector.add(pos, {x=0, y=dy, z=0})
-			local node_above = minetest.get_node(above)
-			if (node_above.name ~= "air") then
-				return false;
-			end
+		if (not func.has_headroom(pos)) then
+			return false;
 		end
 
 		local water_rad = 3;
@@ -120,7 +116,7 @@ local function tilling_job(self)
 			self:delay(100)
 			return false
 		end
-		succsss = self:use_wield_item(target)
+		success = self:use_wield_item(target)
 		if not success then
 			log.error('wield failed')
 			self:set_displayed_action("wield failure")

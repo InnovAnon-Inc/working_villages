@@ -325,5 +325,15 @@ function func.is_item_from_list(list, item_name) -- from farmer.lua
 	return true;
 end
 
+function func.has_headroom(pos)
+	for dy = 1,2 do
+		local above = vector.add(pos, {x=0, y=dy, z=0})
+		local node_above = minetest.get_node(above)
+		if  (node_above.name ~= "air") then
+			return false;
+		end
+	end
+	return true;
+end
 
 return func

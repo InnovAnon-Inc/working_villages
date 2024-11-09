@@ -116,6 +116,9 @@ function working_villages.villager:dig(pos,collect_drops)
 	if (def_node~=nil) and (def_node.after_dig_node~=nil) then
 		old_meta = minetest.get_meta(pos):to_table();
 	end
+
+	--local result, new_stack = self:use_item(self:get_wield_item_stack(), destnode) -- TESTING
+
 	minetest.remove_node(pos)
 	local stacks = minetest.get_node_drops(destnode.name)
 	for _, stack in ipairs(stacks) do
@@ -472,6 +475,13 @@ function working_villages.villager:use_item(stack, target) -- for tiller.lua
 
 	local pointed_thing = {under=target, above=target, type="node"}
 	local new_stack     = on_use(stack, self, pointed_thing)
+
+	local after_use = def.after_use
+	if after_use == nil then return true, new_stack end
+
+	local digparams = nil; -- TODO ?
+	local new_stack = after_use(new_stack, self, target, digparams)
+
 	self:delay(10)
 	return true, new_stack
 end

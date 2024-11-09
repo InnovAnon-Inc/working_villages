@@ -2,17 +2,30 @@
 local func = working_villages.require("jobs/util")
 local log = working_villages.require("log")
 
-local foundationer = working_villages.foundationing_job
-local landscaper = working_villages.landscaping_job
+local stonedigger = working_villages.stonedigging_job
+local sanddigger = working_villages.sanddigging_job
+local dirtdigger = working_villages.dirtdigging_job
+local bricklayer = working_villages.bricklaying_job
+local dirtlayer = working_villages.dirtlaying_job
 local tiller = working_villages.tilling_job
 local planter = working_villages.planting_job
 local farmer = working_villages.farming_job
 
 local function alternate(self, guard_mode)
-	if   (guard_mode == "foundationer") then
-		guard_mode = "landscaper"
 
-	elseif   (guard_mode == "landscaper") then
+	if     (guard_mode == "sanddigger") then
+		guard_mode = "dirtdigger"
+
+	elseif (guard_mode == "dirtdigger") then
+		guard_mode = "stonedigger"
+
+	elseif (guard_mode == "stonedigger") then
+		guard_mode = "bricklayer"
+
+	elseif (guard_mode == "bricklayer") then
+		guard_mode = "dirtlayer"
+
+	elseif (guard_mode == "dirtlayer") then
 		guard_mode = "tiller"
 
 	elseif (guard_mode == "tiller") then
@@ -22,7 +35,7 @@ local function alternate(self, guard_mode)
 		guard_mode = "farmer"
 
 	elseif (guard_mode == "farmer") then
-		guard_mode = "foundationer"
+		guard_mode = "bricklayer"
 
 	else error("invalid mode "..guard_mode) end
 
@@ -36,7 +49,7 @@ working_villages.register_job("working_villages:job_jack", {
 	long_description = "I'm a jack of all trades.",
 	inventory_image	= "default_paper.png^working_villages_farmer.png",
 	jobfunc = function(self)
-		local guard_mode = self:get_job_data("mode") or "foundationer"
+		local guard_mode = self:get_job_data("mode") or "bricklayer"
 		self:set_displayed_action(guard_mode)
 
 		self:count_timer("jack:switch")
@@ -45,11 +58,20 @@ working_villages.register_job("working_villages:job_jack", {
 			return true
 		end
 
-		if     (guard_mode == "foundationer") then
-			result = foundationer(self)
+		if     (guard_mode == "sanddigger") then
+			result = sanddigger(self)
 
-		elseif (guard_mode == "landscaper") then
-			result = landscaper(self)
+		elseif (guard_mode == "dirtdigger") then
+			result = dirtdigger(self)
+
+		elseif (guard_mode == "stonedigger") then
+			result = stonedigger(self)
+
+		elseif (guard_mode == "bricklayer") then
+			result = bricklayer(self)
+
+		elseif (guard_mode == "dirtlayer") then
+			result = dirtlayer(self)
 
 		elseif (guard_mode == "tiller") then
 			result = tiller(self)
