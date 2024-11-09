@@ -2,18 +2,24 @@
 local func = working_villages.require("jobs/util")
 local log = working_villages.require("log")
 
+local treecutter = working_villages.treecutter_job
+local herbcollector = working_villages.herbcollector_job
 local stonedigger = working_villages.stonedigging_job
-local sanddigger = working_villages.sanddigging_job
+--local sanddigger = working_villages.sanddigging_job
 local dirtdigger = working_villages.dirtdigging_job
 local bricklayer = working_villages.bricklaying_job
 local dirtlayer = working_villages.dirtlaying_job
 local tiller = working_villages.tilling_job
 local planter = working_villages.planting_job
 local farmer = working_villages.farming_job
+--local baker = working_villages.baking_job
 
 local function alternate(self, guard_mode)
 
-	if     (guard_mode == "sanddigger") then
+	if     (guard_mode == "treecutter") then
+		guard_mode = "herbcollector"
+
+	elseif (guard_mode == "herbcollector") then
 		guard_mode = "dirtdigger"
 
 	elseif (guard_mode == "dirtdigger") then
@@ -35,9 +41,13 @@ local function alternate(self, guard_mode)
 		guard_mode = "farmer"
 
 	elseif (guard_mode == "farmer") then
-		guard_mode = "dirtlayer"
+		guard_mode = "treecutter"
 
-	else error("invalid mode "..guard_mode) end
+	--elseif (guard_mode == "baker") then
+	--	guard_mode = "treecutter"
+
+	--else error("invalid mode "..guard_mode) end
+	else guard_mode = "treecutter" end
 
 	self:set_job_data("mode", guard_mode)
 	self:set_displayed_action(guard_mode)
@@ -58,8 +68,11 @@ working_villages.register_job("working_villages:job_jack", {
 			return true
 		end
 
-		if     (guard_mode == "sanddigger") then
-			result = sanddigger(self)
+		if     (guard_mode == "treecutter") then
+			result = treecutter(self)
+
+		elseif (guard_mode == "herbcollector") then
+			result = herbcollector(self)
 
 		elseif (guard_mode == "dirtdigger") then
 			result = dirtdigger(self)
@@ -81,7 +94,12 @@ working_villages.register_job("working_villages:job_jack", {
 
 		elseif (guard_mode == "farmer") then
 			result = farmer(self)
-		else error("invalid mode "..guard_mode) end
+
+		--elseif (guard_mode == "baker") then
+		--	result = baker(self)
+
+		--else error("invalid mode "..guard_mode) end
+		else result = false end
 
 		if (not result) then
 			guard_mode = alternate(self, guard_mode)

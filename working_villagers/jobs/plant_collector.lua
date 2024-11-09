@@ -94,6 +94,10 @@ local function find_herb_node(pos)
     return (minetest.find_node_near(pos, 9, node.name) ~= nil);
   end
 
+  if (not func.has_headroom(pos)) then
+    return false;
+  end
+
   return true;
 end
 
@@ -121,40 +125,43 @@ local function take_func(villager,stack)
 	return false
 end
 
+local function herbcollector_job(self)
+	self:handle_night()
+	--self:handle_chest(nil, put_func)
+	self:handle_chest(take_func, put_func)
+	self:handle_job_pos()
+
+	self:count_timer("herbcollector:search")
+	self:count_timer("herbcollector:change_dir")
+	self:handle_obstacles()
+	if self:timer_exceeded("herbcollector:search",20) then
+		self:collect_nearest_item_by_condition(herbs.is_herb, searching_range)
+		local target = func.search_surrounding(self.object:get_pos(), find_herb_node, searching_range)
+		if target ~= nil then
+			local destination = func.find_adjacent_clear(target)
+			if destination then
+			  destination = func.find_ground_below(destination)
+			end
+			if destination==false then
+				print("failure: no adjacent walkable found")
+				destination = target
+			end
+			self:go_to(destination)
+			--local herb_data = herbs.get_herb(minetest.get_node(target).name);
+			--herbs.get_herb(minetest.get_node(target).name);
+				self:dig(target,true)
+		end
+	elseif self:timer_exceeded("herbcollector:change_dir",50) then
+		self:change_direction_randomly()
+	end
+end
+
 working_villages.register_job("working_villages:job_herbcollector", {
 	description      = "herb collector (working_villages)",
 	long_description = "I look for all sorts of plants and collect them.",
 	inventory_image  = "default_paper.png^working_villages_herb_collector.png",
-	jobfunc = function(self)
-		self:handle_night()
-		--self:handle_chest(nil, put_func)
-		self:handle_chest(take_func, put_func)
-		self:handle_job_pos()
-
-		self:count_timer("herbcollector:search")
-		self:count_timer("herbcollector:change_dir")
-		self:handle_obstacles()
-		if self:timer_exceeded("herbcollector:search",20) then
-			self:collect_nearest_item_by_condition(herbs.is_herb, searching_range)
-			local target = func.search_surrounding(self.object:get_pos(), find_herb_node, searching_range)
-			if target ~= nil then
-				local destination = func.find_adjacent_clear(target)
-				if destination then
-				  destination = func.find_ground_below(destination)
-				end
-				if destination==false then
-					print("failure: no adjacent walkable found")
-					destination = target
-				end
-				self:go_to(destination)
-        			--local herb_data = herbs.get_herb(minetest.get_node(target).name);
-        			--herbs.get_herb(minetest.get_node(target).name);
-				self:dig(target,true)
-			end
-		elseif self:timer_exceeded("herbcollector:change_dir",50) then
-			self:change_direction_randomly()
-		end
-	end,
+	jobfunc = herbcollector_job,
 })
 
 working_villages.herbs = herbs
+working_villages.herbcollector_job = herbcollector_job
